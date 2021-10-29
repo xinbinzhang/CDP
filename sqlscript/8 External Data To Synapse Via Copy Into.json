@@ -1,0 +1,16 @@
+{
+	"name": "8 External Data To Synapse Via Copy Into",
+	"properties": {
+		"content": {
+			"query": "/* **DISCLAIMER**\nBy accessing this code, you acknowledge the code is made available for presentation and demonstration purposes only and that the code: (1) is not subject to SOC 1 and SOC 2 compliance audits; (2) is not designed or intended to be a substitute for the professional advice, diagnosis, treatment, or judgment of a certified financial services professional; (3) is not designed, intended or made available as a medical device; and (4) is not designed or intended to be a substitute for professional medical advice, diagnosis, treatment or judgement. Do not use this code to replace, substitute, or provide professional financial advice or judgment, or to replace, substitute or provide medical advice, diagnosis, treatment or judgement. You are solely responsible for ensuring the regulatory, legal, and/or contractual compliance of any use of the code, including obtaining any authorizations or consents, and any solution you choose to build that incorporates this code in whole or in part. */\n\n--Step 1 Let's create table\nIF OBJECT_ID(N'dbo.Twitter', N'U') IS NOT NULL\nBEGIN\n\tDROP TABLE [dbo].[Twitter]\nEND\nGO\nSET ANSI_NULLS ON\nGO\nSET QUOTED_IDENTIFIER ON\nGO\nCREATE TABLE [dbo].[Twitter]\n( \n\t[Time] [nvarchar](4000)  NULL,\n\t[Hashtag] [nvarchar](4000)  NULL,\n\t[Tweet] [nvarchar](4000)  NULL,\n\t[City] [nvarchar](4000)  NULL,\n\t[UserName] [nvarchar](4000)  NULL,\n\t[RetweetCount] [int]  NULL,\n\t[FavouriteCount] [int]  NULL,\n\t[Sentiment] [nvarchar](4000)  NULL,\n\t[SentimentScore] [int]  NULL,\n\t[IsRetweet] [int]  NULL,\n\t[HourOfDay] [nvarchar](4000)  NULL,\n\t[Language] [nvarchar](4000)  NULL\n)\nWITH\n(\n\tDISTRIBUTION = ROUND_ROBIN,\n\tCLUSTERED COLUMNSTORE INDEX\n);\nGO\n\n-- Step 2 Copy data from all PARQUET files in to the table\nCOPY INTO [dbo].[Twitter]\nFROM 'https://asaexpdatalakecdpofdev.blob.core.windows.net/twitterdata/dbo.TwitterAnalytics.parquet'\nWITH (\n    FILE_TYPE = 'PARQUET',\n    CREDENTIAL=(IDENTITY= 'Shared Access Signature', SECRET='?sv=2019-07-07&sr=c&sig=z%2Fm60cZRLj2L40NrUmw6K0R5zSz0HMLewxMCTqs2%2B0M%3D&se=2021-10-11T10%3A52%3A30Z&sp=rwdl')\n);\nGO\n\n-- Step 3 Lets query table \nSELECT TOP 10 * \nFROM  [dbo].[Twitter];\nGO\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"name": "SQLPool01",
+				"type": "SqlPool"
+			}
+		},
+		"type": "SqlQuery"
+	}
+}

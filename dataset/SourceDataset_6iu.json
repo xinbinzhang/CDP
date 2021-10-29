@@ -1,0 +1,103 @@
+{
+	"name": "SourceDataset_6iu",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "HttpServer1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "HttpServerLocation"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Region",
+				"type": "String"
+			},
+			{
+				"name": "Country",
+				"type": "String"
+			},
+			{
+				"name": "Product_Category",
+				"type": "String"
+			},
+			{
+				"name": "Campaign_ID",
+				"type": "String"
+			},
+			{
+				"name": "Campaign_Name",
+				"type": "String"
+			},
+			{
+				"name": "Qualification",
+				"type": "String"
+			},
+			{
+				"name": "Qualification_Number",
+				"type": "String"
+			},
+			{
+				"name": "Response_Status",
+				"type": "String"
+			},
+			{
+				"name": "Responses",
+				"type": "String"
+			},
+			{
+				"name": "Cost",
+				"type": "String"
+			},
+			{
+				"name": "Revenue",
+				"type": "String"
+			},
+			{
+				"name": "ROI",
+				"type": "String"
+			},
+			{
+				"name": "Lead_Generation",
+				"type": "String"
+			},
+			{
+				"name": "Revenue_Target",
+				"type": "String"
+			},
+			{
+				"name": "Campaign_Tactic",
+				"type": "String"
+			},
+			{
+				"name": "Customer_Segment",
+				"type": "String"
+			},
+			{
+				"name": "Status",
+				"type": "String"
+			},
+			{
+				"name": "Profit",
+				"type": "String"
+			},
+			{
+				"name": "Marketing_Cost",
+				"type": "String"
+			},
+			{
+				"name": "Revenue_Varriance",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

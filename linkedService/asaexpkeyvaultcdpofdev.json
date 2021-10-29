@@ -1,0 +1,11 @@
+{
+	"name": "asaexpkeyvaultcdpofdev",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://asaexpkeyvaultcdpofdev.vault.azure.net/"
+		}
+	}
+}

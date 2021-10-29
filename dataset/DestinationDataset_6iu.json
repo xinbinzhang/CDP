@@ -1,0 +1,101 @@
+{
+	"name": "DestinationDataset_6iu",
+	"properties": {
+		"annotations": [],
+		"type": "SqlPoolTable",
+		"schema": [
+			{
+				"name": "Region",
+				"type": "varchar"
+			},
+			{
+				"name": "Country",
+				"type": "varchar"
+			},
+			{
+				"name": "Product_Category",
+				"type": "varchar"
+			},
+			{
+				"name": "Campaign_ID",
+				"type": "varchar"
+			},
+			{
+				"name": "Campaign_Name",
+				"type": "varchar"
+			},
+			{
+				"name": "Qualification",
+				"type": "varchar"
+			},
+			{
+				"name": "Qualification_Number",
+				"type": "varchar"
+			},
+			{
+				"name": "Response_Status",
+				"type": "varchar"
+			},
+			{
+				"name": "Responses",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Cost",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Revenue",
+				"type": "varchar"
+			},
+			{
+				"name": "ROI",
+				"type": "varchar"
+			},
+			{
+				"name": "Lead_Generation",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Revenue_Target",
+				"type": "varchar"
+			},
+			{
+				"name": "Campaign_Tactic",
+				"type": "varchar"
+			},
+			{
+				"name": "Customer_Segment",
+				"type": "varchar"
+			},
+			{
+				"name": "Status",
+				"type": "varchar"
+			},
+			{
+				"name": "Profit",
+				"type": "varchar"
+			},
+			{
+				"name": "Marketing_Cost",
+				"type": "varchar"
+			},
+			{
+				"name": "Revenue_Varriance",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "CampaignAnalytics"
+		},
+		"sqlPool": {
+			"referenceName": "SQLPool01",
+			"type": "SqlPoolReference"
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

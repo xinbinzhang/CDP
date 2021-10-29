@@ -1,0 +1,24 @@
+{
+	"name": "PC1050SqlServer1",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"connectionString": "Integrated Security=True;Data Source=PC1050;Initial Catalog=Northwind",
+			"userName": "Administrator",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "asaexpkeyvaultcdpofdev",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "PC1050admin"
+			}
+		},
+		"connectVia": {
+			"referenceName": "IntegrationRuntime2",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

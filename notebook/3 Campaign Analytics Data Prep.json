@@ -1,0 +1,117 @@
+{
+	"name": "3 Campaign Analytics Data Prep",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "SparkPool01",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2
+		},
+		"metadata": {
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/34647962-6ace-44c9-81fb-6cd9c0d985fb/resourceGroups/Synapse-WWI-Lab-dev/providers/Microsoft.Synapse/workspaces/asaexpworkspacecdpofdev/bigDataPools/SparkPool01",
+				"name": "SparkPool01",
+				"type": "Spark",
+				"endpoint": "https://asaexpworkspacecdpofdev.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool01",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "2.4",
+				"nodeCount": 3,
+				"cores": 4,
+				"memory": 28
+			}
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## *DISCLAIMER*\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					" By accessing this code, you acknowledge the code is made available for presentation and demonstration purposes only and that the code: (1) is not subject to SOC 1 and SOC 2 compliance audits; (2) is not designed or intended to be a substitute for the professional advice, diagnosis, treatment, or judgment of a certified financial services professional; (3) is not designed, intended or made available as a medical device; and (4) is not designed or intended to be a substitute for professional medical advice, diagnosis, treatment or judgement. Do not use this code to replace, substitute, or provide professional financial advice or judgment, or to replace, substitute or provide medical advice, diagnosis, treatment or judgement. You are solely responsible for ensuring the regulatory, legal, and/or contractual compliance of any use of the code, including obtaining any authorizations or consents, and any solution you choose to build that incorporates this code in whole or in part.\n",
+					"</p>"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Fetch Marketing Campaigns data into DataFrame and Calculate Revenue Variance\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"data_path = spark.read.load('abfss://marketingdb-staging@asaexpdatalakecdpofdev.dfs.core.windows.net/CampaignAnalytics.csv', format='csv'\n",
+					", header=True \n",
+					")\n",
+					"data_path.show(10)"
+				],
+				"execution_count": 33
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Data Transformation - Calculate Revenue Variance\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"from pyspark.sql.functions import *\n",
+					"from pyspark.sql.types import *\n",
+					"\n",
+					"import numpy as np\n",
+					"\n",
+					"pd_df = data_path.select(\"*\").toPandas()\n",
+					"pd_df['Revenue']= pd_df['Revenue'].replace('[\\$,]', '', regex=True).astype(float)\n",
+					"pd_df['Revenue_Target']= pd_df['Revenue_Target'].replace('[\\$,]', '', regex=True).astype(float)\n",
+					"\n",
+					"#Create new column\n",
+					"pd_df['Revenue_Variance'] = pd_df['Revenue_Target'] - pd_df['Revenue']\n",
+					"\n",
+					"display(pd_df[1:5])"
+				],
+				"execution_count": 34
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Move data to Azure Data Lake Gen2\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"df = spark.createDataFrame(pd_df)\n",
+					"df.show(5)\n",
+					"\n",
+					"(df\n",
+					" .coalesce(1)\n",
+					" .write\n",
+					" .mode(\"overwrite\")\n",
+					" .option(\"header\", \"true\")\n",
+					" .format(\"com.databricks.spark.csv\")\n",
+					" .save('abfss://processed-campaigndata@asaexpdatalakecdpofdev.dfs.core.windows.net/campaigndata'))"
+				],
+				"execution_count": 43
+			}
+		]
+	}
+}

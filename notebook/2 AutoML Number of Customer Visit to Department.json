@@ -1,0 +1,520 @@
+{
+	"name": "2 AutoML Number of Customer Visit to Department",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "SparkPool01",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2
+		},
+		"metadata": {
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/34647962-6ace-44c9-81fb-6cd9c0d985fb/resourceGroups/Synapse-WWI-Lab-dev/providers/Microsoft.Synapse/workspaces/asaexpworkspacecdpofdev/bigDataPools/SparkPool01",
+				"name": "SparkPool01",
+				"type": "Spark",
+				"endpoint": "https://asaexpworkspacecdpofdev.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool01",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "2.4",
+				"nodeCount": 3,
+				"cores": 4,
+				"memory": 28
+			}
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## *DISCLAIMER*\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					" By accessing this code, you acknowledge the code is made available for presentation and demonstration purposes only and that the code: (1) is not subject to SOC 1 and SOC 2 compliance audits; (2) is not designed or intended to be a substitute for the professional advice, diagnosis, treatment, or judgment of a certified financial services professional; (3) is not designed, intended or made available as a medical device; and (4) is not designed or intended to be a substitute for professional medical advice, diagnosis, treatment or judgement. Do not use this code to replace, substitute, or provide professional financial advice or judgment, or to replace, substitute or provide medical advice, diagnosis, treatment or judgement. You are solely responsible for ensuring the regulatory, legal, and/or contractual compliance of any use of the code, including obtaining any authorizations or consents, and any solution you choose to build that incorporates this code in whole or in part.\n",
+					"</p>"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"<p style=\"font-size:25px; color:black;\"><u><i><b>Predicting the number of customers likely to visit different departments in a store</b></i></u></p>\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    Time series forecasting is the use of a model to predict future values based on previously observed values.\n",
+					"The AutoML feature of AzureSynapse, in this case uses more than 25 time series forecasting machine learning algorithms to predicts how many customers are likely to visit different departments in a store.\n",
+					"</p>\n",
+					"Note:\n",
+					"</p>\n",
+					"<p style=\"font-size:15px; color:#117d30;\">\n",
+					" This notebook is written in Scala, and there is interoperability between Scala and Python code.\n",
+					"</p>\n",
+					"\n",
+					"<p style=\"font-size:15px; color:#117d30;\">\n",
+					"    <u> Abstract: </u>\n",
+					"</p>\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"1) Ingest  data from Azure Synapse Data Storage account using PySpark.\n",
+					"</p>\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"2) Exploratory Data Analysis \n",
+					"</p>\n",
+					"<p style=\"font-size:15px; color:#117d30;\">\n",
+					"3) Training more than 25 time series forecasting machine learning algorithms.\n",
+					"</p>\n",
+					"<p style=\"font-size:15px; color:#117d30;\">\n",
+					"4) Predict the number of customers likely to visit different departments in a store by choosing the best performing Machine Learning Algorithm..\n",
+					"</p>\n",
+					""
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Introduction\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"\n",
+					"\n",
+					"### In this notebook we showcased how to:\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"1. Create an experiment using an existing workspace\n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"2. Configure AutoML using 'AutoMLConfig'\n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"3. Train the model \n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"4. Explore the engineered features and results\n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"5. Configuration and remote run of AutoML for a time-series model with lag and rolling window features\n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"6. Run and explore the forecast\n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"7. Register the model\n",
+					"\n",
+					"\n",
+					"\n",
+					""
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Importing required libraries such as azureml, pandas, pandasql, pyspark, and other supporting libraries.\n",
+					"\n",
+					""
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Cell title\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"from azureml.train.automl import AutoMLConfig\n",
+					"# from azureml.widgets import RunDetails\n",
+					"from azureml.core.experiment import Experiment\n",
+					"from azureml.core.workspace import Workspace\n",
+					"from azureml.train.automl.run import AutoMLRun\n",
+					"from sklearn.metrics import mean_squared_error\n",
+					"from sklearn.model_selection import train_test_split\n",
+					"import math\n",
+					"from pyspark.sql.window import Window\n",
+					"from azureml.core.webservice import AciWebservice\n",
+					"from azureml.core.model import InferenceConfig\n",
+					"from azureml.core.model import Model\n",
+					"from azureml.core.webservice import Webservice\n",
+					"from azureml.core.conda_dependencies import CondaDependencies\n",
+					"from azureml.core.environment import Environment\n",
+					"\n",
+					"import pandas as pd \n",
+					"import datetime\n",
+					"import matplotlib.pyplot as plt\n",
+					"import numpy as np \n",
+					"import seaborn as sns \n",
+					"import azureml.train.automl.runtime\n",
+					"import logging\n",
+					"import os, tempfile\n",
+					"import pandas as pd \n",
+					"from pyspark.sql.functions import *\n",
+					"from pyspark.sql.types import *\n",
+					"from pyspark import SparkContext\n",
+					"\n",
+					"os.environ['AZURE_SERVICE']=\"Microsoft.ProjectArcadia\""
+				],
+				"execution_count": 3
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## *Connecting to Azure Synapse Data Warehouse*\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    Connection to Azure Synapse Data Warehouse is initiated and the required data is ingested for processing.\n",
+					"    The warehouse is connected with a single line of code. Just point to actions in a table, click on a new notebook, and then click on \"Load to DataFrame\".  </p>\n",
+					"   <p style=\"font-size:16px; color:#117d30;\"> After providing the necessary details,  the required data is loaded in the form of a Spark dataframe.\n",
+					"One magical line of code converts a dataframe from Scala to Python!\n",
+					"</p>\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"department_visits = spark.read.load('abfss://machine-learning@asaexpdatalakecdpofdev.dfs.core.windows.net/department-visits.csv'\n",
+					"    ,format='csv'\n",
+					"    ,header=True)\n",
+					"department_visits.show(10)"
+				],
+				"execution_count": 4
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# Exploratory Data Analysis\n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"The goal of performing exploratory data analysis is to understand the underlying patterns and correlations among features in the data. \n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"\n",
+					"department_visit_data = department_visits.select(\"*\").toPandas()\n",
+					"department_visit_data['Date'] = pd.to_datetime(department_visit_data['Date']).dt.strftime('%m/%d/%y')\n",
+					"department_visit_data['Month'] = pd.to_datetime(department_visit_data['Date']).dt.strftime('%m')\n",
+					"department_visit_data['DayOfMonth'] = pd.to_datetime(department_visit_data['Date']).dt.strftime('%d')\n",
+					"department_visit_data['Year'] = pd.to_datetime(department_visit_data['Date']).dt.strftime('%y')\n",
+					"department_visit_data['DayOfWeek'] = pd.to_datetime(department_visit_data['Date']).dt.strftime('%a')\n",
+					"department_visit_data[['Accessories_count','Entertainment_count','Gaming','Kids','Mens','Phone_and_GPS','Womens']] = \\\n",
+					"    department_visit_data[['Accessories_count','Entertainment_count','Gaming','Kids','Mens','Phone_and_GPS','Womens']].apply(pd.to_numeric)\n",
+					"\n",
+					"#display(department_visit_data)"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"##  Deriving insights from customer visits data  \n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"1. Heat Map: Thickness of the color indicates the no of customers visiting the section on that particular day. It provides a quick representation of distribution of traffic across days and in various departments. From the graph, we can infer that more number of customers visit the Entertainment department on Wednesdays, Thursdays and Fridays and there is less foot traffic on Mondays and Fridays in the Phone_and_gps department.\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_dow = department_visit_data.groupby('DayOfWeek').sum().sort_values(by = 'DayOfWeek', \n",
+					"                                                                 ascending=True)\n",
+					"df_dow.head(100)"
+				],
+				"execution_count": 6
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"sns.set()\n",
+					"plt.rcParams['font.size'] = 12\n",
+					"bg_color = (0.88,0.85,0.95)\n",
+					"plt.rcParams['figure.facecolor'] = bg_color\n",
+					"plt.rcParams['axes.facecolor'] = bg_color\n",
+					"fig, ax = plt.subplots(1)\n",
+					"cmap = sns.diverging_palette(10, 150, n=2, as_cmap=True)\n",
+					"#cmap = sns.color_palette(\"hls\", 150)\n",
+					"\n",
+					"p = sns.heatmap(df_dow,\n",
+					"                cmap=cmap,\n",
+					"                annot=True,\n",
+					"                fmt=\"d\",\n",
+					"                annot_kws={'size':8},\n",
+					"                ax=ax)\n",
+					"plt.xlabel('Category')\n",
+					"plt.ylabel('Day Of Week')\n",
+					"ax.set_ylim((0,7))\n",
+					"plt.text(5,7.4, \"Heat Map\", fontsize = 25, color='Black', fontstyle='italic')\n",
+					" \n",
+					"plt.show()"
+				],
+				"execution_count": 7
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# Data Manipulation  \n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"1. Converting date to a specific format and making date fields relevant for prediction.\n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"2. Converting the data type of the columns to numeric before being passed as input to the model.\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"department_visit_data = department_visits.select(\"*\").toPandas()\n",
+					"department_visit_data['Date'] = pd.to_datetime(department_visit_data['Date']).dt.strftime('%Y-%m-%d')\n",
+					"\n",
+					"department_visit_data[['Accessories_count','Entertainment_count','Gaming','Kids','Mens','Phone_and_GPS','Womens']] = \\\n",
+					"    department_visit_data[['Accessories_count','Entertainment_count','Gaming','Kids','Mens','Phone_and_GPS','Womens']].apply(pd.to_numeric)\n",
+					"\n",
+					"grouped_data = department_visit_data.groupby('Date', as_index=False).sum()\n",
+					"\n",
+					"\n",
+					"total_rows = grouped_data.count\n",
+					"print(total_rows)"
+				],
+				"execution_count": 10
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"accessories_data = grouped_data[['Date','Accessories_count']]\n",
+					"entertainment_data = grouped_data[['Date','Entertainment_count']]\n",
+					"gaming_data = grouped_data[['Date','Gaming']]\n",
+					"kids_data = grouped_data[['Date','Kids']]\n",
+					"mens_data = grouped_data[['Date','Mens']]\n",
+					"phone_and_GPS_data = grouped_data[['Date','Phone_and_GPS']]\n",
+					"womens_data = grouped_data[['Date','Womens']]\n",
+					"\n",
+					"accessories_data['Department']='Accessories'\n",
+					"entertainment_data['Department']='Entertainment'\n",
+					"gaming_data['Department']='Gaming'\n",
+					"kids_data['Department']='Kids'\n",
+					"mens_data['Department']='Mens'\n",
+					"phone_and_GPS_data['Department']='Phone_and_GPS'\n",
+					"womens_data['Department']='Womens'\n",
+					"\n",
+					"accessories_data= accessories_data.rename(columns={'Accessories_count': 'Visits'})\n",
+					"entertainment_data= entertainment_data.rename(columns={ 'Entertainment_count':'Visits'})\n",
+					"gaming_data = gaming_data.rename(columns={'Gaming': 'Visits'})\n",
+					"kids_data = kids_data.rename(columns={'Kids': 'Visits'})\n",
+					"mens_data = mens_data.rename(columns={'Mens': 'Visits'})\n",
+					"phone_and_GPS_data = phone_and_GPS_data.rename(columns={'Phone_and_GPS': 'Visits'})\n",
+					"womens_data = womens_data.rename(columns={'Womens': 'Visits'})\n",
+					"df_customervisits = accessories_data.append( entertainment_data).append(gaming_data).append(kids_data).append(mens_data).append(phone_and_GPS_data).append(womens_data)\n",
+					"\n",
+					"df_customervisits"
+				],
+				"execution_count": 11
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"total_rows = df_customervisits.count\n",
+					"print(total_rows)"
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Train\n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"1. Instantiate an AutoMLConfig object. \n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"2. The configuration below defines the settings and data used to run the experiment. \n",
+					""
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Set AutoML Configuration Parameters\n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    The forecast horizon is the number of periods into the future that the model should predict. \n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    It is generally recommended that users set forecast horizons to less than 100 time periods\n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    Furthermore, AutoML's memory use and computation time increases in proportion to the length of the horizon, so consider carefully how this value is set. \n",
+					"\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    If a long horizon forecast really is necessary, consider aggregating the series to a coarser time scale.\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"automl_settings = {\n",
+					"   'time_column_name':'Date',\n",
+					"   'grain_column_names': ['Department'],\n",
+					"   'max_horizon': 25\n",
+					"}"
+				],
+				"execution_count": 13
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"automl_config = AutoMLConfig( \n",
+					"                            #forecasting for time-series tasks\n",
+					"                            task='forecasting',\n",
+					"                            #measuere for evaluating the performance of the models\n",
+					"                            primary_metric='normalized_root_mean_squared_error',\n",
+					"                            #Maximum amount of time in minutes that the experiment take before it terminates.\n",
+					"                            experiment_timeout_minutes=15,\n",
+					"                            enable_early_stopping=True,\n",
+					"                            training_data=df_customervisits,#train_data,\n",
+					"                            label_column_name='Visits',\n",
+					"                            #Rolling Origin Validation is used to split time-series in a temporally consistent way.\n",
+					"                            n_cross_validations=4,\n",
+					"                            # Flag to enble early termination if the score is not improving in the short term.\n",
+					"                            enable_ensembling=False,\n",
+					"                            verbosity=logging.INFO,\n",
+					"                            **automl_settings)"
+				],
+				"execution_count": 17
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"subscription_id='34647962-6ace-44c9-81fb-6cd9c0d985fb'\n",
+					"resource_group='Synapse-WWI-Lab-dev'\n",
+					"workspace_name='amlworkspacecdpofdev'\n",
+					"ws = Workspace(subscription_id = subscription_id, resource_group = resource_group, workspace_name = workspace_name)\n",
+					"ws.write_config()\n",
+					"ws = Workspace.from_config()\n",
+					"experiment = Experiment(ws, \"Department_Visit_Count_V3\")"
+				],
+				"execution_count": 18
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Run The Experiment\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"Automated ML runs more than 25 Machine Learning Algorithms and grades them according to performance.\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"model_name = \"Department-Visits-Forecast-Model\"\n",
+					"description = \"Forecasting Machine Learning model to predict department visits\"\n",
+					"tags = {'WWI': 'DepartmentVisitsPredictions'}\n",
+					"\n",
+					"\n",
+					"matching_models = Model.list(ws, model_name, latest=True)\n",
+					"if len(matching_models) > 0:\n",
+					"    run = AutoMLRun(experiment, matching_models[0].run_id)\n",
+					"    automl_run = AutoMLRun(experiment, run.parent.id)\n",
+					"    best_run, fitted_model = automl_run.get_output()\n",
+					"else:\n",
+					"    local_run = experiment.submit(automl_config, show_output=True)\n",
+					"    best_run, fitted_model = local_run.get_output()\n",
+					"    model = local_run.register_model(model_name=model_name, description = description, tags = tags)\n",
+					"\n",
+					"fitted_model"
+				],
+				"execution_count": 48
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"#future_date =  pd.date_range(start='2015-12-1', end='2015-12-5')\n",
+					"#future_data = pd.DataFrame({'Date':future_date, 'Department':'Accessories', 'Visits':0})\n",
+					"\n",
+					"future_date =  pd.date_range(start='2021-01-01', end='2021-01-20').values\n",
+					"future_data = pd.DataFrame({'Date':future_date, 'Department':'Womens'})\n",
+					"future_data = future_data.append(pd.DataFrame({'Date':future_date, 'Department':'Mens'}), ignore_index=True)\n",
+					"future_data = future_data.append(pd.DataFrame({'Date':future_date, 'Department':'Entertainment'}), ignore_index=True)\n",
+					"future_data = future_data.append(pd.DataFrame({'Date':future_date, 'Department':'Gaming'}), ignore_index=True)\n",
+					"future_data = future_data.append(pd.DataFrame({'Date':future_date, 'Department':'Kids'}), ignore_index=True)\n",
+					"future_data = future_data.append(pd.DataFrame({'Date':future_date, 'Department':'Accessories'}), ignore_index=True)\n",
+					"future_data = future_data.append(pd.DataFrame({'Date':future_date, 'Department':'Phone_and_GPS'}), ignore_index=True)\n",
+					"\n",
+					"future_data"
+				],
+				"execution_count": 49
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Making future prediction using model that performs best\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"y_predictions, X_trans = fitted_model.forecast(future_data)\n",
+					"X_trans.reset_index(inplace=True)\n",
+					"X_trans"
+				],
+				"execution_count": 50
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"table = pd.pivot_table(X_trans, values=['_automl_target_col'], index=['Date'], columns=['Department'])\n",
+					"#table['Date'] = table.index\n",
+					"table.columns = table.columns.droplevel()\n",
+					"table.reset_index(inplace=True)\n",
+					"\n",
+					"table = table.astype({'Accessories': 'int32','Entertainment': 'int32','Gaming': 'int32','Kids': 'int32','Mens': 'int32','Phone_and_GPS': 'int32','Womens': 'int32'}, copy=False)\n",
+					"\n",
+					"table.head(100)"
+				],
+				"execution_count": 58
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"predict_df = spark.createDataFrame(table, ['Date', 'Accessories', 'Entertainment', 'Gaming', 'Kids', 'Mens', 'Phone_and_GPS', 'Womens'])"
+				],
+				"execution_count": 59
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"predict_df \\\n",
+					"    .repartition(1) \\\n",
+					"    .write.format('csv') \\\n",
+					"    .option(\"header\", \"true\") \\\n",
+					"    .mode(\"overwrite\") \\\n",
+					"    .save('abfss://machine-learning@asaexpdatalakecdpofdev.dfs.core.windows.net/department-visit-predictions.csv')"
+				],
+				"execution_count": 61
+			}
+		]
+	}
+}

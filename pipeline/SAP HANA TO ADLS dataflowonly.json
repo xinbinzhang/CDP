@@ -1,0 +1,41 @@
+{
+	"name": "SAP HANA TO ADLS dataflowonly",
+	"properties": {
+		"activities": [
+			{
+				"name": "1 Ingest data from SAP HANA to Azure Synapse",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "ingest_data_from_sap_hana_to_azure_synapse",
+						"type": "DataFlowReference"
+					},
+					"staging": {
+						"linkedService": {
+							"referenceName": "asaexpdatalakecdpofdev",
+							"type": "LinkedServiceReference"
+						},
+						"folderPath": "staging"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2021-10-12T00:00:16Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

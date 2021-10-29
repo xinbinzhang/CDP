@@ -1,0 +1,11 @@
+{
+	"name": "asaexppowerbicdpofdev",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "PowerBIWorkspace",
+		"typeProperties": {
+			"workspaceID": "55e0a765-960a-4f09-90bf-c417a33a1d4c"
+		}
+	}
+}

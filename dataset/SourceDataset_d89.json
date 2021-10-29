@@ -1,0 +1,13 @@
+{
+	"name": "SourceDataset_d89",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "asaexpdatalakecdpofdev",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SapHanaTable",
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

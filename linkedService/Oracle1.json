@@ -1,0 +1,23 @@
+{
+	"name": "Oracle1",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "Oracle",
+		"typeProperties": {
+			"connectionString": "host=192.168.1.104;port=1521;sid=oracle19;user id=data_owner",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "asaexpkeyvaultcdpofdev",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "oracelpw"
+			}
+		},
+		"connectVia": {
+			"referenceName": "IntegrationRuntime2",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

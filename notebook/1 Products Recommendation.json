@@ -1,0 +1,237 @@
+{
+	"name": "1 Products Recommendation",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "SparkPool01",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2
+		},
+		"metadata": {
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/34647962-6ace-44c9-81fb-6cd9c0d985fb/resourceGroups/Synapse-WWI-Lab-dev/providers/Microsoft.Synapse/workspaces/asaexpworkspacecdpofdev/bigDataPools/SparkPool01",
+				"name": "SparkPool01",
+				"type": "Spark",
+				"endpoint": "https://asaexpworkspacecdpofdev.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool01",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "2.4",
+				"nodeCount": 3,
+				"cores": 4,
+				"memory": 28
+			}
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## *DISCLAIMER*\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					" By accessing this code, you acknowledge the code is made available for presentation and demonstration purposes only and that the code: (1) is not subject to SOC 1 and SOC 2 compliance audits; (2) is not designed or intended to be a substitute for the professional advice, diagnosis, treatment, or judgment of a certified financial services professional; (3) is not designed, intended or made available as a medical device; and (4) is not designed or intended to be a substitute for professional medical advice, diagnosis, treatment or judgement. Do not use this code to replace, substitute, or provide professional financial advice or judgment, or to replace, substitute or provide medical advice, diagnosis, treatment or judgement. You are solely responsible for ensuring the regulatory, legal, and/or contractual compliance of any use of the code, including obtaining any authorizations or consents, and any solution you choose to build that incorporates this code in whole or in part.\n",
+					"</p>"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"<p style=\"font-size:25px; color:black;\"><u><i><b>Product Recommendations</b></i></u></p>\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    Product recommendations is a filtering system that predicts and shows the items that a user would likely purchase based on their purchase history.\n",
+					"</p>\n",
+					"\n",
+					"<p style=\"font-size:15px; color:#318f50;\">\n",
+					"Note:\n",
+					"</p>\n",
+					"<p style=\"font-size:15px; color:#117d30;\">\n",
+					" This notebook is written in Scala, and there is interoperability between Scala and Python code.\n",
+					"</p>\n",
+					"<p style=\"font-size:15px; color:#117d30;\">\n",
+					"    <u> Steps: </u>\n",
+					"</p>\n",
+					"<p style=\"font-size:15px; color:#117d30;\">\n",
+					"1) Data is ingested from Azure Synapse Data Warehouse using PySpark.\n",
+					"</p>\n",
+					"<p style=\"font-size:15px; color:#117d30;\">\n",
+					"2) The model is trained using the PySpark ML-Lib recommendations module.\n",
+					"</p>\n",
+					"<p style=\"font-size:15px; color:#117d30;\">\n",
+					"3) Product recommendations are generated for the user.\n",
+					"</p>"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## *Connecting to Azure Synapse Data Warehouse*\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    Connection to Azure Synapse Data Warehouse is initiated and the required data is ingested for processing.\n",
+					"    The warehouse is connected with a single line of code. Just point to actions in a table, click on a new notebook, and then click on \"Load to DataFrame\".  </p>\n",
+					"   <p style=\"font-size:16px; color:#117d30;\"> After providing the necessary details,  the required data is loaded in the form of a Spark dataframe.\n",
+					"One magical line of code converts a dataframe from Scala to Python!\n",
+					"</p>"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"import os\n",
+					"import sys\n",
+					"import pandas as pd \n",
+					"import numpy as np\n",
+					"import re\n",
+					"import pandas as pd\n",
+					"from scipy import spatial\n",
+					"from IPython.display import display\n",
+					"from pyspark.sql.functions import *\n",
+					"from pyspark.sql.types import *\n",
+					"from pyspark.sql.window import Window\n",
+					"from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating\n",
+					"from pyspark import SparkContext\n",
+					"\n",
+					"import traceback"
+				],
+				"execution_count": 3
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"customer_data = spark.read.load('abfss://machine-learning@asaexpdatalakecdpofdev.dfs.core.windows.net/customer-sales-latest.csv'\n",
+					"    ,format='csv'\n",
+					"    ,header=True)\n",
+					"customer_data.show(10)"
+				],
+				"execution_count": 4
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"product_info = customer_data.select('product_id', 'product_name').distinct()\n",
+					"product_info.show(10)"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## ***Training the model***\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    \n",
+					"    The machine learning model used is the recommendation module present in\n",
+					"    pyspark.mllib.\n",
+					"</p>\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    Using the ALS (alternating least square) method, we can train the model, which takes a list of tuples consisting mainly of \"userID\", \"productID\" and \"rating\".\n",
+					"</p>\n",
+					"<p style=\"font-size:16px; color:#117d30;\">\n",
+					"    The parameters passed in training the model are a list of tuples, no. of iterations, and rank.\n",
+					"</p>\n",
+					"<!-- <p style=\"font-size:16px; color:#117d30;\">\n",
+					"    Rank is the no. of features to use while training the model.\n",
+					"</p> -->\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"\n",
+					"def train_model():\n",
+					"  \"\"\"\n",
+					"    Training model for predicting the recommendation on given set of input\n",
+					"  \"\"\"\n",
+					"  try:\n",
+					"    rank = 5\n",
+					"    numIterations = 10\n",
+					"    print(\"Training model.........\")\n",
+					"    \n",
+					"    model = ALS.train(customer_data.select('customer_id', 'product_id', 'rating'), rank, numIterations, seed=30)\n",
+					"    # model.save(sc, PATH)\n",
+					"    return model\n",
+					"  except:\n",
+					"    traceback.print_exc()\n",
+					"    return \"Error while loading model\""
+				],
+				"execution_count": 6
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"trained_model = train_model()"
+				],
+				"execution_count": 7
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"def calculate_similarities(product_id, product_vector, threshold):\n",
+					"    similarities = trained_model.productFeatures() \\\n",
+					"        .map(lambda products: [product_id, products[0], float(1 - spatial.distance.cosine(products[1], product_vector))]) \\\n",
+					"        .filter(lambda x: x[2] >= threshold) \\\n",
+					"        .collect()\n",
+					"    return similarities"
+				],
+				"execution_count": 8
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"product_recommendations = []\n",
+					"\n",
+					"for key,value in trained_model.productFeatures().collect():\n",
+					"    product_recommendations += calculate_similarities(key, value, 0.75)"
+				],
+				"execution_count": 9
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"\n",
+					"recommend_df = spark.createDataFrame(product_recommendations, ['ProductId', 'RecommendedProductId', 'Similarity'])\n",
+					"\n",
+					"result = recommend_df \\\n",
+					"    .join(product_info, recommend_df.ProductId == product_info.product_id, how='inner') \\\n",
+					"    .withColumnRenamed('product_name', 'ProductName') \\\n",
+					"    .select('ProductId', 'ProductName', 'RecommendedProductId', 'Similarity') \\\n",
+					"    .join(product_info, recommend_df.RecommendedProductId == product_info.product_id, how='inner') \\\n",
+					"    .withColumnRenamed('product_name', 'RecommendedProductName') \\\n",
+					"    .select('ProductId', 'ProductName', 'RecommendedProductId', 'RecommendedProductName', 'Similarity') \\\n",
+					"    .orderBy('ProductId')\n",
+					"result.show(100)"
+				],
+				"execution_count": 10
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"result \\\n",
+					"    .repartition(1) \\\n",
+					"    .write.format('csv') \\\n",
+					"    .option(\"header\", \"true\") \\\n",
+					"    .mode(\"overwrite\") \\\n",
+					"    .save('abfss://machine-learning@asaexpdatalakecdpofdev.dfs.core.windows.net/product-recommendations.csv')"
+				],
+				"execution_count": 11
+			}
+		]
+	}
+}
